@@ -14,12 +14,13 @@ use service_manager::{
     ServiceInstallCtx, ServiceLabel, ServiceManager, ServiceStartCtx, ServiceStopCtx,
     ServiceUninstallCtx,
 };
-use std::ffi::OsString;
 use std::net::SocketAddr;
 #[cfg(feature = "tcp")]
 use std::net::TcpListener as SocketBinder;
 #[cfg(not(feature = "tcp"))]
 use std::net::UdpSocket as SocketBinder;
+use std::time::Duration;
+use std::{ffi::OsString, thread::sleep};
 
 use std::path::PathBuf;
 use sysinfo::{Pid, System, SystemExt};
@@ -162,7 +163,12 @@ impl ServiceControl for NodeServiceManager {
     fn get_available_port(&self) -> Result<u16> {
         let addr: SocketAddr = "127.0.0.1:0".parse().unwrap();
 
-        Ok(SocketBinder::bind(addr)?.local_addr()?.port())
+        let socket = SocketBinder::bind(addr)?;
+        let port = socket.local_addr()?.port();
+        drop(socket);
+        sleep(Duration::from_secs(3));
+
+        Ok(port)
     }
 
     fn install(&self, config: ServiceConfig) -> Result<()> {
